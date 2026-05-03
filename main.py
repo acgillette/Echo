@@ -101,11 +101,9 @@ def tag(word):
 PROMPTS = [
     "What are you #action# today?",
     "Something felt #quality#. What was it?",
-    "What did you #verb_past# that you haven't said aloud?",
+    "What have you #verb_past# that you haven't said aloud?",
     "Where does the #noun# live in your body?",
     "The #quality# thing and the #noun#,what do they share?",
-    "You have been #action# the #noun#. Is that true?",
-    "The #noun# you #verb_past#, is it still #quality#?",
 ]
 
 STRANGERS = [
@@ -222,8 +220,10 @@ class App:
         scr.remove_flag(lv.obj.FLAG.SCROLLABLE)
 
         top = lv.label(scr)
-        top.set_text("what landed? tap words to save")
+        top.set_text(self.current_prompt)
         top.set_style_text_color(lv.color_hex(DIM), 0)
+        top.set_long_mode(lv.label.LONG_MODE.WRAP)
+        top.set_width(290)
         top.align(lv.ALIGN.TOP_MID, 0, 8)
 
         self._cloud_cont = lv.obj(scr)
@@ -249,7 +249,16 @@ class App:
         self._ta.set_size(150, 34)
         self._ta.set_one_line(True)
         self._ta.set_placeholder_text("add a word...")
-        self._ta.align(lv.ALIGN.BOTTOM_LEFT, 10, -10)
+        self._ta.align(lv.ALIGN.BOTTOM_LEFT, 10, 0)  
+
+        self._preview_lbl = lv.label(scr)
+        self._preview_lbl.set_text("")
+        self._preview_lbl.set_width(290)
+        self._preview_lbl.set_style_text_color(lv.color_hex(0x6a6aaa), 0)
+        self._preview_lbl.set_long_mode(lv.label.LONG_MODE.WRAP)
+        self._preview_lbl.align_to(top, lv.ALIGN.OUT_BOTTOM_LEFT, 0, 4)
+
+
 
         self._kb = lv.keyboard(scr)
         self._kb.set_size(300, 110)
@@ -258,6 +267,7 @@ class App:
         self._kb.add_flag(lv.obj.FLAG.HIDDEN)
 
         self._ta.add_event_cb(self._on_ta_focus, lv.EVENT.FOCUSED, None)
+        self._ta.add_event_cb(self._on_ta_change, lv.EVENT.VALUE_CHANGED, None)
         self._kb.add_event_cb(self._on_kb_ready, lv.EVENT.READY, None)
 
 
@@ -266,12 +276,22 @@ class App:
     def _on_ta_focus(self, evt):
         self._kb.remove_flag(lv.obj.FLAG.HIDDEN)
 
+    def _on_ta_change(self, evt):
+        word = self._ta.get_text().strip().lower()
+        if word:
+            slot = tag(word) or 'noun'
+            self._preview_lbl.set_text(word + "  -  " + slot)
+        else:
+            self._preview_lbl.set_text("")
+
+
     def _on_kb_ready(self, evt):
         word = self._ta.get_text().strip().lower()
         if word and len(word) >= 3:
             self.selected_words.add(word)
             self._add_chip(word)
             self._ta.set_text("")
+            self._preview_lbl.set_text("")
             self._kb.add_flag(lv.obj.FLAG.HIDDEN)
 
     def _populate_cloud(self):
